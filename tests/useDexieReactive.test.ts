@@ -410,6 +410,40 @@ describe('useLiveQuery producer lifecycle', () => {
         expect(state.hasError.value).toBe(false)
     })
 
+    it('executes the query only through the Dexie liveQuery callback', async () => {
+        vi.stubGlobal('window', {})
+
+        const query = vi.fn(() => Promise.resolve([{ id: 'friend-1' }]))
+
+        useLiveQuery(query, {
+            key: 'friends',
+        })
+
+        expect(query).not.toHaveBeenCalled()
+
+        await expect(dexieMock.subscriptions[0]?.query()).resolves.toEqual([
+            { id: 'friend-1' },
+        ])
+        expect(query).toHaveBeenCalledOnce()
+    })
+
+    it('normalizes non-array live query results to an empty array', () => {
+        vi.stubGlobal('window', {})
+
+        const state = useLiveQuery<{ id: string }>(
+            () => Promise.resolve([{ id: 'friend-1' }]),
+            {
+                key: 'friends',
+            },
+        )
+
+        dexieMock.subscriptions[0]?.observer.next({ id: 'friend-1' } as never)
+
+        expect(state.data.value).toEqual([])
+        expect(state.loading.value).toBe(false)
+        expect(state.hasError.value).toBe(false)
+    })
+
     it('sets hasError and clears loading when the subscription errors', () => {
         vi.stubGlobal('window', {})
 
@@ -460,6 +494,27 @@ describe('useLiveQuery producer lifecycle', () => {
 
         expect(state.hasError.value).toBe(true)
         expect(state.error?.value).toBe(error)
+    })
+
+    it('clears the development error when a later result succeeds', () => {
+        vi.stubGlobal('window', {})
+        vi.stubGlobal('process', { env: { NODE_ENV: 'development' } })
+
+        const state = useLiveQuery<{ id: string }>(
+            () => Promise.resolve([{ id: 'friend-1' }]),
+            {
+                key: 'friends',
+            },
+        )
+        const error = new Error('query failed')
+
+        dexieMock.subscriptions[0]?.observer.error(error)
+        dexieMock.subscriptions[0]?.observer.next([{ id: 'friend-1' }])
+
+        expect(state.data.value).toEqual([{ id: 'friend-1' }])
+        expect(state.loading.value).toBe(false)
+        expect(state.hasError.value).toBe(false)
+        expect(state.error?.value).toBeUndefined()
     })
 
     it('catches immediate liveQuery subscription failures internally', () => {
