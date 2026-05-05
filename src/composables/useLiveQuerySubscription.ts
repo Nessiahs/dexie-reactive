@@ -1,6 +1,9 @@
-import { createLiveQueryState } from '../utils/createLiveQueryState'
 import type { LiveQueryState } from '../types'
+import {
+    resolveLiveQuerySubscription,
+    resolveSubscriptionScope,
+} from '../utils/subscriptionScope'
 
 export function useLiveQuerySubscription<T>(key: string): LiveQueryState<T> {
-    return createLiveQueryState<T>(key)
+    return resolveLiveQuerySubscription<T>(resolveSubscriptionScope(), key)
 }
