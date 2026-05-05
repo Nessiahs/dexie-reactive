@@ -25,7 +25,7 @@ jobs:
                   cache: npm
 
             - name: Install dependencies
-              run: npm ci
+              run: npm ci --include=optional
 
             - name: Lint
               run: npm run lint
@@ -33,8 +33,8 @@ jobs:
             - name: Check formatting (prettier)
               run: npm run format:check
 
-            - name: run tests
-              run: npm run test
+            - name: Run tests with coverage
+              run: npm run test:coverage
 
             - name: Run codacy-coverage-reporter
               uses: codacy/codacy-coverage-reporter-action@v1.3.0
