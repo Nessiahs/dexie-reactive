@@ -24,7 +24,6 @@ export function useLiveQuery<T>(
 ): LiveQueryState<T> {
     const scope = resolveSubscriptionScope()
     const state = createLiveQueryState<T>(options.key ?? crypto.randomUUID())
-    const entry = registerLiveQueryProducer(scope, state)
     let subscription: DexieSubscription | undefined
     let latestQueryFn: unknown = resolveQueryFunction(queryFn)
 
@@ -95,11 +94,15 @@ export function useLiveQuery<T>(
         }
     }
 
-    entry.stop = stopSubscription
-    entry.restart = () => {
+    const restartSubscription = () => {
         latestQueryFn = resolveQueryFunction(queryFn)
         startSubscription()
     }
+
+    const entry = registerLiveQueryProducer(scope, state, (registeredEntry) => {
+        registeredEntry.stop = stopSubscription
+        registeredEntry.restart = restartSubscription
+    })
 
     if (isRef(queryFn)) {
         watch(
