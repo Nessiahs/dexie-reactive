@@ -6,6 +6,8 @@ node_modules
 # Build and coverage output
 dist
 coverage
+playwright-report
+test-results
 
 # Tool caches and generated metadata
 .eslintcache

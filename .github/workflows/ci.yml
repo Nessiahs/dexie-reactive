@@ -36,6 +36,12 @@ jobs:
             - name: Run tests with coverage
               run: npm run test:coverage
 
+            - name: Install Playwright browsers
+              run: npx playwright install --with-deps chromium
+
+            - name: Run browser integration tests
+              run: npm run test:browser
+
             - name: Run codacy-coverage-reporter
               uses: codacy/codacy-coverage-reporter-action@v1.3.0
               with:
