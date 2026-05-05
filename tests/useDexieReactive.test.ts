@@ -241,6 +241,47 @@ describe('useLiveQuery producer lifecycle', () => {
         expect(state.hasError.value).toBe(false)
     })
 
+    it('throws immediately when a duplicate producer uses an existing key', () => {
+        vi.stubGlobal('window', {})
+
+        useLiveQuery(() => Promise.resolve([{ id: 'friend-1' }]), {
+            key: 'friends',
+        })
+
+        expect(() =>
+            useLiveQuery(() => Promise.resolve([{ id: 'friend-2' }]), {
+                key: 'friends',
+            }),
+        ).toThrow(
+            'Duplicate live query producer for key "friends". Only one useLiveQuery producer may own a key; useLiveQuerySubscription(key) to consume existing shared state.',
+        )
+        expect(dexieMock.liveQuery).toHaveBeenCalledTimes(1)
+    })
+
+    it('keeps the existing producer usable after a duplicate producer failure', () => {
+        vi.stubGlobal('window', {})
+
+        const producer = useLiveQuery<{ id: string }>(
+            () => Promise.resolve([{ id: 'friend-1' }]),
+            {
+                key: 'friends',
+            },
+        )
+
+        expect(() =>
+            useLiveQuery(() => Promise.resolve([{ id: 'friend-2' }]), {
+                key: 'friends',
+            }),
+        ).toThrow(/Duplicate live query producer for key "friends"/)
+
+        dexieMock.subscriptions[0]?.observer.next([{ id: 'friend-1' }])
+
+        expect(producer.data.value).toEqual([{ id: 'friend-1' }])
+        expect(useLiveQuerySubscription<{ id: string }>('friends')).toBe(
+            producer,
+        )
+    })
+
     it('does not create a subscription when the query function is missing', () => {
         vi.stubGlobal('window', {})
 
