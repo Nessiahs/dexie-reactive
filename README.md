@@ -8,6 +8,7 @@ Reactive Dexie live queries for Vue.
 - `npm run format:check` verifies Prettier formatting.
 - `npm run typecheck` runs TypeScript without emitting files.
 - `npm run test` runs Vitest tests from `tests/*`.
+- `npm run test:browser` runs Playwright browser integration tests.
 - `npm run build` builds the package with unbuild.
 - `npm run check` runs linting, formatting, type checking, tests, and build.
 
@@ -26,6 +27,11 @@ The unit test suite focuses on the shared live query contract:
 - error, loading, and development-only error exposure behavior
 - generated UUID key uniqueness
 - Dexie `liveQuery` usage through the provided query callback
+
+The browser integration suite mounts a minimal Vue app in Chromium with a real
+Dexie IndexedDB database. It verifies producer and consumer components sharing
+one key, database updates propagating to all mounted components, consumer
+unmount/remount behavior, and duplicate producer errors in the browser runtime.
 
 ## Git Hooks
 
