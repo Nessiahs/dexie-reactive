@@ -157,6 +157,7 @@ function attachToSharedState<T>(
     state.data = entry.data
     state.loading = entry.loading
     state.hasError = entry.hasError
+    state.error = entry.error
     state.stop = entry.stop
     state.restart = entry.restart
 }

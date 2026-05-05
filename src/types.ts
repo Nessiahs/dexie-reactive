@@ -1,4 +1,4 @@
-import type { MaybeRefOrGetter, Ref } from 'vue'
+import type { Ref } from 'vue'
 
 export type MaybePromise<T> = T | Promise<T>
 
@@ -13,12 +13,13 @@ export interface LiveQueryState<T> {
     data: Ref<T[]>
     loading: Ref<boolean>
     hasError: Ref<boolean>
+    error?: Ref<unknown | undefined>
     stop: () => void
     restart: () => void
 }
 
 export type LiveQueryQuerySource<T> =
     | LiveQueryQueryFunction<T>
-    | MaybeRefOrGetter<LiveQueryQueryFunction<T> | null | undefined>
+    | Ref<LiveQueryQueryFunction<T> | null | undefined>
     | null
     | undefined
