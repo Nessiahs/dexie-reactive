@@ -275,6 +275,30 @@ describe('subscription scope coordination', () => {
 
         expect(scope.subscriptionMap.has('friends')).toBe(false)
     })
+
+    it('unsubscribes and ignores stale updates when a producer scope is disposed', () => {
+        vi.stubGlobal('window', {})
+
+        const componentScope = effectScope()
+        let producer: LiveQueryState<{ id: string }> | undefined
+
+        componentScope.run(() => {
+            producer = useLiveQuery(
+                () => Promise.resolve([{ id: 'friend-1' }]),
+                {
+                    key: 'friends',
+                },
+            )
+        })
+
+        componentScope.stop()
+        dexieMock.subscriptions[0]?.observer.next([{ id: 'stale-friend' }])
+
+        expect(
+            dexieMock.subscriptions[0]?.subscription.unsubscribe,
+        ).toHaveBeenCalledOnce()
+        expect(producer?.data.value).toEqual([])
+    })
 })
 
 describe('useLiveQuery producer lifecycle', () => {
@@ -403,6 +427,41 @@ describe('useLiveQuery producer lifecycle', () => {
         expect(state.hasError.value).toBe(true)
     })
 
+    it('does not expose the original error outside development mode', () => {
+        vi.stubGlobal('window', {})
+        vi.stubGlobal('process', { env: { NODE_ENV: 'production' } })
+
+        const state = useLiveQuery(
+            () => Promise.resolve([{ id: 'friend-1' }]),
+            {
+                key: 'friends',
+            },
+        )
+
+        dexieMock.subscriptions[0]?.observer.error(new Error('query failed'))
+
+        expect(state.hasError.value).toBe(true)
+        expect(state.error).toBeUndefined()
+    })
+
+    it('exposes the original error in development mode', () => {
+        vi.stubGlobal('window', {})
+        vi.stubGlobal('process', { env: { NODE_ENV: 'development' } })
+
+        const state = useLiveQuery(
+            () => Promise.resolve([{ id: 'friend-1' }]),
+            {
+                key: 'friends',
+            },
+        )
+        const error = new Error('query failed')
+
+        dexieMock.subscriptions[0]?.observer.error(error)
+
+        expect(state.hasError.value).toBe(true)
+        expect(state.error?.value).toBe(error)
+    })
+
     it('catches immediate liveQuery subscription failures internally', () => {
         vi.stubGlobal('window', {})
         dexieMock.liveQuery.mockImplementationOnce(() => {
@@ -516,6 +575,59 @@ describe('useLiveQuery producer lifecycle', () => {
 
         expect(state.data.value).toEqual([{ id: 'friend-2' }])
         expect(state.loading.value).toBe(false)
+    })
+
+    it('ignores stale results across rapid query function reference changes', () => {
+        vi.stubGlobal('window', {})
+
+        const query = ref(() => Promise.resolve([{ id: 'friend-1' }]))
+        const state = useLiveQuery(query, { key: 'friends' })
+
+        query.value = () => Promise.resolve([{ id: 'friend-2' }])
+        query.value = () => Promise.resolve([{ id: 'friend-3' }])
+
+        dexieMock.subscriptions[0]?.observer.next([{ id: 'stale-friend-1' }])
+        dexieMock.subscriptions[1]?.observer.next([{ id: 'stale-friend-2' }])
+        dexieMock.subscriptions[2]?.observer.next([{ id: 'friend-3' }])
+
+        expect(state.data.value).toEqual([{ id: 'friend-3' }])
+        expect(state.loading.value).toBe(false)
+    })
+
+    it('resets to inactive defaults when a reactive query function becomes missing', () => {
+        vi.stubGlobal('window', {})
+
+        const query = ref<(() => Promise<{ id: string }[]>) | undefined>(() =>
+            Promise.resolve([{ id: 'friend-1' }]),
+        )
+        const state = useLiveQuery(query, { key: 'friends' })
+
+        dexieMock.subscriptions[0]?.observer.next([{ id: 'friend-1' }])
+        query.value = undefined
+
+        expect(
+            dexieMock.subscriptions[0]?.subscription.unsubscribe,
+        ).toHaveBeenCalledOnce()
+        expect(state.data.value).toEqual([])
+        expect(state.loading.value).toBe(false)
+        expect(state.hasError.value).toBe(false)
+    })
+
+    it('resets to inactive error defaults when a reactive query function becomes invalid', () => {
+        vi.stubGlobal('window', {})
+
+        const query = ref<unknown>(() => Promise.resolve([{ id: 'friend-1' }]))
+        const state = useLiveQuery(query as never, { key: 'friends' })
+
+        dexieMock.subscriptions[0]?.observer.next([{ id: 'friend-1' }])
+        query.value = 42
+
+        expect(
+            dexieMock.subscriptions[0]?.subscription.unsubscribe,
+        ).toHaveBeenCalledOnce()
+        expect(state.data.value).toEqual([])
+        expect(state.loading.value).toBe(false)
+        expect(state.hasError.value).toBe(true)
     })
 
     it('generates and returns a UUID key when no key is provided', () => {
