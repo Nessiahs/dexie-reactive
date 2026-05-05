@@ -1,0 +1,75 @@
+name: 'Approve a merge request'
+description: >
+    Composite GitHub Action to programmatically approve a pull request (PR)
+    using a dedicated token.
+
+    Intended for automated workflows where PR approvals are required
+    to satisfy branch protection rules.
+
+    Note:
+    The token must belong to a different user than the PR author,
+    otherwise GitHub will reject the approval.
+
+inputs:
+    token:
+        description: >
+            GitHub token used to submit the approval review.
+
+            Requirements:
+            - Must have `pull_request:write` permissions
+            - Must belong to a different user than the PR author
+            - Must NOT be the default GITHUB_TOKEN (approval will be rejected)
+        required: true
+
+    number:
+        description: >
+            Pull request number to approve within the current repository.
+        required: true
+
+runs:
+    using: 'composite'
+    steps:
+        # -------------------------------------------------------------------------
+        # Step 1: Log target PR (debugging & traceability)
+        # -------------------------------------------------------------------------
+        - name: Log PR number
+          shell: 'bash'
+          env:
+              INPUTS_NUMBER: ${{ inputs.number }}
+          run: |
+              set -e
+
+              echo "🔍 Target Pull Request: #${INPUTS_NUMBER}"
+
+        # -------------------------------------------------------------------------
+        # Step 2: Submit approval via GitHub REST API
+        # -------------------------------------------------------------------------
+        - name: Approve PR
+          shell: 'bash'
+          env:
+              INPUTS_TOKEN: ${{ inputs.token }}
+              INPUTS_NUMBER: ${{ inputs.number }}
+          run: |
+              set -e
+
+              # GitHub REST API endpoint for PR reviews
+              API_URL="https://api.github.com/repos/${{ github.repository }}/pulls/${INPUTS_NUMBER}/reviews"
+
+              echo "🚀 Approving PR #${INPUTS_NUMBER}"
+
+              RESPONSE=$(curl -s -o response.json -w "%{http_code}" -X POST \
+                -H "Authorization: token ${INPUTS_TOKEN}" \
+                -H "Content-Type: application/json" \
+                -d '{"event":"APPROVE"}' \
+                "${API_URL}")
+
+              # Check if request was successful (2xx)
+              if [[ "$RESPONSE" -ge 200 && "$RESPONSE" -lt 300 ]]; then
+                echo "✅ PR approved successfully"
+              else
+                echo "❌ Failed to approve PR"
+                echo "HTTP Status: $RESPONSE"
+                echo "Response:"
+                cat response.json
+                exit 1
+              fi

@@ -1,0 +1,105 @@
+name: 'Commit repository'
+description: >
+    Commit and push changes to a target branch with optional validation.
+
+inputs:
+    token:
+        description: 'GitHub token with write access'
+        required: true
+
+    path:
+        description: 'Files or directories to stage'
+        required: false
+        default: '.'
+
+    branch:
+        description: 'Target branch'
+        required: true
+
+    message:
+        description: 'Commit message'
+        required: true
+
+outputs:
+    pushed:
+        description: 'Indicates whether a commit was created and pushed'
+        value: ${{ steps.commit.outputs.push }}
+
+runs:
+    using: 'composite'
+    steps:
+        - name: Validate commit message
+          shell: bash
+          run: |
+              set -e
+
+              if ! echo "${{ inputs.message }}" | grep -Eq '^(feat|fix|chore|docs|refactor|test|perf|build)(\(.+\))?: .+'; then
+                echo "Invalid commit message"
+                exit 1
+              fi
+
+        - name: Configure git
+          shell: bash
+          run: |
+              set -e
+
+              git remote set-url origin https://x-access-token:${{ inputs.token }}@github.com/${GITHUB_REPOSITORY}.git
+              git config --global user.name "github-actions[bot]"
+              git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+        - name: Resolve current branch
+          id: context
+          shell: bash
+          env:
+              EVENT_NAME: ${{ github.event_name }}
+              PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          run: |
+              set -e
+
+              if [[ "$EVENT_NAME" == pull_request* ]]; then
+                echo "branch=$PR_HEAD_REF" >> "$GITHUB_OUTPUT"
+              else
+                echo "branch=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+              fi
+
+        - name: Checkout or create branch
+          if: inputs.branch != steps.context.outputs.branch
+          shell: bash
+          run: |
+              set -e
+
+              git checkout -b "${{ inputs.branch }}"
+
+        - name: Stage files
+          shell: bash
+          run: |
+              set -e
+
+              git reset
+              git add "${{ inputs.path }}"
+
+        - name: Commit
+          id: commit
+          shell: bash
+          run: |
+              set -e
+
+              if git diff --cached --quiet; then
+                echo "push=false" >> "$GITHUB_OUTPUT"
+              else
+                git commit -m "${{ inputs.message }}"
+              fi
+
+        - name: Push
+          if: steps.commit.outputs.push != 'false'
+          shell: bash
+          run: |
+              set -e
+
+              git push --force origin "${{ inputs.branch }}"
+
+        - name: Skip push (no changes)
+          if: steps.commit.outputs.push == 'false'
+          shell: bash
+          run: |
+              echo "No changes to commit"
