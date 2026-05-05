@@ -43,6 +43,12 @@ export function registerLiveQueryProducer<T>(
     scope: SubscriptionScope,
     state: LiveQueryState<T>,
 ): LiveQuerySubscriptionEntry<T> {
+    if (scope.subscriptionMap.has(state.key)) {
+        throw new Error(
+            `Duplicate live query producer for key "${state.key}". Only one useLiveQuery producer may own a key; useLiveQuerySubscription(key) to consume existing shared state.`,
+        )
+    }
+
     const entry = Object.assign(state, {
         producer: {
             active: true,
