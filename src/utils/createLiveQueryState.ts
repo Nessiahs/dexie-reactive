@@ -27,5 +27,9 @@ function isDevelopmentEnvironment(): boolean {
         }
     }
 
-    return runtime.process?.env?.NODE_ENV === 'development'
+    if (!runtime.process) {
+        return false
+    }
+
+    return runtime.process.env?.NODE_ENV === 'development'
 }
