@@ -42,6 +42,7 @@ export function resolveSubscriptionScope(): SubscriptionScope {
 export function registerLiveQueryProducer<T>(
     scope: SubscriptionScope,
     state: LiveQueryState<T>,
+    configureEntry?: (entry: LiveQuerySubscriptionEntry<T>) => void,
 ): LiveQuerySubscriptionEntry<T> {
     if (scope.subscriptionMap.has(state.key)) {
         throw new Error(
@@ -55,6 +56,8 @@ export function registerLiveQueryProducer<T>(
             generation: 0,
         },
     }) as LiveQuerySubscriptionEntry<T>
+
+    configureEntry?.(entry)
 
     scope.subscriptionMap.set(
         entry.key,

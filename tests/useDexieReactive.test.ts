@@ -184,6 +184,58 @@ describe('subscription scope coordination', () => {
         expect(secondConsumer.loading).toBe(producer.loading)
     })
 
+    it('does not create a Dexie liveQuery subscription for waiting consumers', () => {
+        vi.stubGlobal('window', {})
+
+        useLiveQuerySubscription<{ id: string }>('friends')
+
+        expect(dexieMock.liveQuery).not.toHaveBeenCalled()
+    })
+
+    it('does not create a Dexie liveQuery subscription for consumers attached to an existing producer', () => {
+        vi.stubGlobal('window', {})
+
+        useLiveQuery(() => Promise.resolve([{ id: 'friend-1' }]), {
+            key: 'friends',
+        })
+        dexieMock.liveQuery.mockClear()
+
+        useLiveQuerySubscription<{ id: string }>('friends')
+
+        expect(dexieMock.liveQuery).not.toHaveBeenCalled()
+    })
+
+    it('shares producer-owned stop and restart from waiting consumers after attachment', () => {
+        vi.stubGlobal('window', {})
+
+        const consumer = useLiveQuerySubscription<{ id: string }>('friends')
+        const waitingStop = consumer.stop
+        const waitingRestart = consumer.restart
+        const producer = useLiveQuery(
+            () => Promise.resolve([{ id: 'friend-1' }]),
+            {
+                key: 'friends',
+            },
+        )
+
+        expect(consumer.stop).not.toBe(waitingStop)
+        expect(consumer.restart).not.toBe(waitingRestart)
+        expect(consumer.stop).toBe(producer.stop)
+        expect(consumer.restart).toBe(producer.restart)
+
+        consumer.stop()
+
+        expect(
+            dexieMock.subscriptions[0]?.subscription.unsubscribe,
+        ).toHaveBeenCalledOnce()
+
+        consumer.restart()
+
+        expect(dexieMock.liveQuery).toHaveBeenCalledTimes(2)
+        expect(consumer.data.value).toEqual([])
+        expect(consumer.loading.value).toBe(true)
+    })
+
     it('removes waiting consumers when their effect scope is disposed', () => {
         vi.stubGlobal('window', {})
 
