@@ -5,6 +5,9 @@ on:
         workflows: ['ci']
         types:
             - completed
+concurrency:
+    group: release
+    cancel-in-progress: false
 
 jobs:
     changelog:
