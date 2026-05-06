@@ -1,3 +1,16 @@
+## 🚀 Version 1.2.0 (2026-05-06)
+
+### 🚀 Features
+* add reusable changelog commit guard action (2dcab72fd069d31d488a2dbd094a892ea63a30c9)
+* add reusable changelog commit guard action ([#41](https://github.com/Nessiahs/dexie-reactive/issues/41)) (503a78bf3548cbb1c05ca41207165db8d1c5fe55)
+
+### 📚 Documentation
+* add project status badges to README (9383155638c3d27ef4fd39e9018048e11c369d56)
+* add project status badges to README ([#34](https://github.com/Nessiahs/dexie-reactive/issues/34)) (859414b5869c4c7e129a3f91c84162700091f9d3)
+* add StackBlitz demo link and improve README positioning (b41345cb95cc11e6c5755f4a430ea0c4438b366a)
+* add StackBlitz demo link and improve README positioning ([#36](https://github.com/Nessiahs/dexie-reactive/issues/36)) (46b10e2feb26954f028f1eef46b2893e1308a220)
+* update changelog [skip ci] (89f49b6fc2ef63a26e367a11008fb50c3285b56e)
+
 ## 🚀 Version 1.1.0 (2026-05-06)
 
 ### 🚀 Features
