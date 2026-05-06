@@ -1,0 +1,68 @@
+name: Bug report
+description: Report a reproducible problem in dexie-reactive
+title: 'fix: '
+labels:
+    - bug
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Thank you for reporting a bug.
+
+              Please provide a minimal reproduction whenever possible. Issues without enough information may be closed until they can be reproduced.
+
+    - type: textarea
+      id: problem
+      attributes:
+          label: Problem
+          description: What is not working as expected?
+          placeholder: Describe the observed behavior.
+      validations:
+          required: true
+
+    - type: textarea
+      id: expected
+      attributes:
+          label: Expected behavior
+          description: What did you expect to happen?
+          placeholder: Describe the expected behavior.
+      validations:
+          required: true
+
+    - type: textarea
+      id: reproduction
+      attributes:
+          label: Reproduction
+          description: Provide a minimal reproduction, repository, StackBlitz, or code snippet.
+          placeholder: |
+              Link to reproduction:
+              Steps:
+              1.
+              2.
+              3.
+      validations:
+          required: true
+
+    - type: textarea
+      id: environment
+      attributes:
+          label: Environment
+          description: Provide the relevant runtime and dependency versions.
+          value: |
+              - dexie-reactive:
+              - dexie:
+              - vue:
+              - nuxt:
+              - browser:
+              - node:
+              - package manager:
+      validations:
+          required: true
+
+    - type: textarea
+      id: additional-context
+      attributes:
+          label: Additional context
+          description: Add logs, screenshots, browser console output, or related context.
+      validations:
+          required: false
