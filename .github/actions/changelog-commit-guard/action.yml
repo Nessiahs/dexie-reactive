@@ -1,0 +1,91 @@
+name: 'Changelog commit guard'
+
+description: >
+    Detects automated changelog commits and exposes reusable workflow guard
+    outputs for CI and release pipelines.
+
+inputs:
+    prefix:
+        description: >
+            Commit message prefix used to identify automated changelog commits.
+        required: false
+        default: 'docs(changelog):'
+
+outputs:
+    is_changelog_commit:
+        description: >
+            true when the current commit message starts with the configured
+            changelog prefix.
+        value: ${{ steps.detect.outputs.is_changelog_commit }}
+
+    is_changelog_pull_request:
+        description: >
+            true when the current workflow event is a pull_request for a
+            changelog commit.
+        value: ${{ steps.detect.outputs.is_changelog_pull_request }}
+
+runs:
+    using: 'composite'
+
+    steps:
+        - name: Detect changelog commit
+          id: detect
+          shell: bash
+
+          env:
+              EVENT_NAME: ${{ github.event_name }}
+              PREFIX: ${{ inputs.prefix }}
+
+          run: |
+              set -euo pipefail
+
+              #
+              # Read the latest commit message from the checked out repository.
+              #
+              # The action assumes checkout already happened in the workflow.
+              #
+              commit_message="$(git log -1 --pretty=%B)"
+
+              #
+              # Detect whether the commit is an automated changelog commit.
+              #
+              # This is used to:
+              # - reduce unnecessary CI workload
+              # - avoid duplicate release processing
+              # - preserve coverage reporting on main
+              #
+              if [[ "$commit_message" == "$PREFIX"* ]]; then
+                is_changelog_commit="true"
+              else
+                is_changelog_commit="false"
+              fi
+
+              #
+              # Detect whether this workflow execution belongs to a pull request
+              # created only for changelog updates.
+              #
+              # Changelog pull requests often do not require:
+              # - browser integration tests
+              # - linting
+              # - type checking
+              # - full quality gates
+              #
+              if [[ "$EVENT_NAME" == "pull_request" && "$is_changelog_commit" == "true" ]]; then
+                is_changelog_pull_request="true"
+              else
+                is_changelog_pull_request="false"
+              fi
+
+              #
+              # Publish outputs for downstream workflow conditions.
+              #
+              echo "is_changelog_commit=$is_changelog_commit" >> "$GITHUB_OUTPUT"
+              echo "is_changelog_pull_request=$is_changelog_pull_request" >> "$GITHUB_OUTPUT"
+
+              #
+              # Emit structured debug information for workflow diagnostics.
+              #
+              echo "ℹ️ Event name: $EVENT_NAME"
+              echo "📝 Commit message: $commit_message"
+              echo "🔍 is_changelog_commit: $is_changelog_commit"
+              echo "🔀 is_changelog_pull_request: $is_changelog_pull_request"
