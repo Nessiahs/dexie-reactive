@@ -17,7 +17,7 @@ export interface SubscriptionScope {
 }
 
 interface WaitingConsumer<T> {
-    attach: (entry: LiveQuerySubscriptionEntry<T>) => void
+    attach(sharedEntry: LiveQuerySubscriptionEntry<T>): void
 }
 
 let browserSubscriptionScope: SubscriptionScope | undefined
@@ -96,8 +96,8 @@ export function resolveLiveQuerySubscription<T>(
     state.loading.value = true
 
     const waitingConsumer: WaitingConsumer<T> = {
-        attach: (registeredEntry) => {
-            attachToSharedState(state, registeredEntry)
+        attach: (sharedEntry) => {
+            attachToSharedState(state, sharedEntry)
         },
     }
 
@@ -144,29 +144,29 @@ function removeWaitingConsumer<T>(
 
 function emitSubscriptionRegistered<T>(
     scope: SubscriptionScope,
-    entry: LiveQuerySubscriptionEntry<T>,
+    sharedEntry: LiveQuerySubscriptionEntry<T>,
 ): void {
-    const waitingConsumers = scope.waitingConsumers.get(entry.key)
+    const waitingConsumers = scope.waitingConsumers.get(sharedEntry.key)
 
     if (!waitingConsumers) {
         return
     }
 
     for (const waitingConsumer of waitingConsumers) {
-        ;(waitingConsumer as WaitingConsumer<T>).attach(entry)
+        ;(waitingConsumer as WaitingConsumer<T>).attach(sharedEntry)
     }
 
-    scope.waitingConsumers.delete(entry.key)
+    scope.waitingConsumers.delete(sharedEntry.key)
 }
 
 function attachToSharedState<T>(
     state: LiveQueryState<T>,
-    entry: LiveQuerySubscriptionEntry<T>,
+    sharedEntry: LiveQuerySubscriptionEntry<T>,
 ): void {
-    state.data = entry.data
-    state.loading = entry.loading
-    state.hasError = entry.hasError
-    state.error = entry.error
-    state.stop = entry.stop
-    state.restart = entry.restart
+    state.data = sharedEntry.data
+    state.loading = sharedEntry.loading
+    state.hasError = sharedEntry.hasError
+    state.error = sharedEntry.error
+    state.stop = sharedEntry.stop
+    state.restart = sharedEntry.restart
 }
