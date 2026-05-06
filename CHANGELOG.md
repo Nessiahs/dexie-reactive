@@ -1,3 +1,12 @@
+## 🚀 Version 1.1.0 (2026-05-06)
+
+### 🚀 Features
+* add automated npm publish workflow (30bc7964c4be94b868297e7c872f1c39efaf16ed)
+* add automated npm publish workflow ([#31](https://github.com/Nessiahs/dexie-reactive/issues/31)) (76d4d8d7c5f1d80b677cfa4cbd2fa6a58fda021d)
+
+### 📚 Documentation
+* update changelog [skip ci] (bc3ce81a8313ed714cbe57820b29cb31a050eccc)
+
 ## 🚀 Version 1.0.0 (2026-05-06)
 
 ### 📚 Documentation
