@@ -2,6 +2,9 @@
     "name": "dexie-reactive",
     "version": "0.0.1",
     "description": "Shared, SSR-safe Dexie live query state for Vue 3 and Nuxt 3.",
+    "publishConfig": {
+        "access": "public"
+    },
     "keywords": [
         "dexie",
         "indexeddb",
