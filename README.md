@@ -13,6 +13,19 @@ component owns the real Dexie subscription as a producer. Other components can
 subscribe to the same reactive state by key without creating another Dexie
 subscription.
 
+## Live Demo
+
+See how multiple Vue components share the same reactive Dexie `liveQuery` state without creating duplicate subscriptions.
+
+The demo showcases:
+
+- producer/consumer live query ownership
+- shared reactive IndexedDB state
+- Vue 3 composables
+- automatic cross-component updates
+
+👉 [Open the interactive StackBlitz demo](https://stackblitz.com/edit/dexie-reactive-demo)
+
 ## Why dexie-reactive?
 
 Use `dexie-reactive` when multiple Vue components need to react to the same
