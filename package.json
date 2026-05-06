@@ -1,14 +1,19 @@
 {
     "name": "dexie-reactive",
     "version": "0.0.1",
-    "description": "Reactive Dexie live queries for Vue.",
+    "description": "Shared, SSR-safe Dexie live query state for Vue 3 and Nuxt 3.",
     "keywords": [
         "dexie",
-        "reactive",
+        "indexeddb",
+        "livequery",
         "vue",
         "vue3",
-        "livequery",
-        "composable"
+        "nuxt",
+        "nuxt3",
+        "composable",
+        "reactive",
+        "shared-state",
+        "offline-first"
     ],
     "homepage": "https://github.com/Nessiahs/dexie-reactive#readme",
     "bugs": {
