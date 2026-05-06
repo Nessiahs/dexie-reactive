@@ -39,8 +39,14 @@ jobs:
             - name: 🧪 Run tests with coverage
               run: npm run test:coverage
 
+            - name: 🎭 Cache Playwright browsers
+              uses: actions/cache@v4
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
             - name: 🎭 Install Playwright browsers
-              run: npx playwright install --with-deps chromium
+              run: npx playwright install chromium
 
             - name: 🌐 Run browser integration test
               run: npm run test:browser
