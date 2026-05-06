@@ -23,42 +23,53 @@ jobs:
               uses: ./.github/actions/changelog-commit-guard
 
             - name: 🟢 Setup Node.js
+              if: steps.changelog_commit.outputs.is_changelog_pull_request != 'true'
               uses: actions/setup-node@v5
               with:
                   node-version: 22
                   cache: npm
 
             - name: 📦 Install dependencies
+              if: steps.changelog_commit.outputs.is_changelog_pull_request != 'true'
               run: npm ci --include=optional
 
             - name: 🔍 Run ESLint
+              if: steps.changelog_commit.outputs.is_changelog_commit != 'true'
               run: npm run lint
 
             - name: 🎨 Check Prettier formatting
+              if: steps.changelog_commit.outputs.is_changelog_commit != 'true'
               run: npm run format:check
 
             - name: 🔎 Run TypeScript typecheck
+              if: steps.changelog_commit.outputs.is_changelog_commit != 'true'
               run: npm run typecheck
 
             - name: 🧪 Run tests with coverage
+              if: steps.changelog_commit.outputs.is_changelog_pull_request != 'true'
               run: npm run test:coverage
 
             - name: 🎭 Cache Playwright browsers
+              if: steps.changelog_commit.outputs.is_changelog_commit != 'true'
               uses: actions/cache@v4
               with:
                   path: ~/.cache/ms-playwright
                   key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
             - name: 🎭 Install Playwright browsers
+              if: steps.changelog_commit.outputs.is_changelog_commit != 'true'
               run: npx playwright install chromium
 
             - name: 🌐 Run browser integration test
+              if: steps.changelog_commit.outputs.is_changelog_commit != 'true'
               run: npm run test:browser
 
             - name: 🏗️ Build package
+              if: steps.changelog_commit.outputs.is_changelog_commit != 'true'
               run: npm run build
 
             - name: 📊 Upload coverage to Codacy
+              if: steps.changelog_commit.outputs.is_changelog_pull_request != 'true'
               uses: codacy/codacy-coverage-reporter-action@v1.3.0
               with:
                   project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
