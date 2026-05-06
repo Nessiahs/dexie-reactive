@@ -18,6 +18,10 @@ jobs:
               with:
                   token: ${{ secrets.GITHUB_TOKEN }}
 
+            - name: 🧭 Detect changelog commit
+              id: changelog_commit
+              uses: ./.github/actions/changelog-commit-guard
+
             - name: 🟢 Setup Node.js
               uses: actions/setup-node@v5
               with:
