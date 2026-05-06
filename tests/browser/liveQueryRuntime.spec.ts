@@ -56,3 +56,22 @@ test('surfaces duplicate producer misuse in a real browser runtime', async ({
     await expect(page.getByTestId('producer-names')).toHaveText('Ada')
     await expect(page.getByTestId('producer-error')).toHaveText('false')
 })
+
+test('propagates same-origin Dexie writes across browser tabs', async ({
+    context,
+    page,
+}) => {
+    const secondPage = await context.newPage()
+
+    await page.goto('/')
+    await secondPage.goto('/')
+
+    await page.getByTestId('producer-name-input').fill('Ada')
+    await page.getByTestId('producer-add-button').click()
+
+    await expect(page.getByTestId('producer-names')).toHaveText('Ada')
+    await expect(secondPage.getByTestId('producer-names')).toHaveText('Ada')
+    await expect(secondPage.getByTestId('consumer-names')).toHaveText('Ada')
+
+    await secondPage.close()
+})
