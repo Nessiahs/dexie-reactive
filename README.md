@@ -1,5 +1,11 @@
 # dexie-reactive
 
+[![npm version](https://img.shields.io/npm/v/dexie-reactive.svg)](https://www.npmjs.com/package/dexie-reactive)
+[![npm downloads](https://img.shields.io/npm/dm/dexie-reactive.svg)](https://www.npmjs.com/package/dexie-reactive)
+[![License: MIT](https://img.shields.io/npm/l/dexie-reactive.svg)](https://github.com/Nessiahs/dexie-reactive/blob/main/LICENSE)
+[![CI](https://github.com/Nessiahs/dexie-reactive/actions/workflows/ci.yml/badge.svg)](https://github.com/Nessiahs/dexie-reactive/actions/workflows/ci.yml)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/2bc5b1a13dbf41eb97a4bea816726444)](https://app.codacy.com/gh/Nessiahs/dexie-reactive/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
+
 Shared, SSR-safe Dexie live query state for Vue 3 and Nuxt 3.
 
 `dexie-reactive` wraps Dexie `liveQuery` with small Vue composables. One
