@@ -1,0 +1,64 @@
+name: release
+
+on:
+    workflow_run:
+        workflows: ['ci']
+        types:
+            - completed
+
+jobs:
+    changelog:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+            pull-requests: write
+
+        outputs:
+            version: ${{ steps.changelog.outputs.version }}
+
+        if: >
+            github.event.workflow_run.conclusion == 'success' &&
+            github.event.workflow_run.head_branch == 'main' &&
+            github.event.workflow_run.event == 'push'
+
+        steps:
+            - name: 📥 Checkout repository
+              uses: Nessiahs/nuxt-keycloak-oidc/.github/actions/checkout@v0.9.0
+              with:
+                  token: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: 📝 Generate changelog
+              id: changelog
+              uses: Nessiahs/nuxt-keycloak-oidc/.github/actions/changelog@v0.9.0
+              with:
+                  token: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: 💾 Commit changelog
+              if: steps.changelog.outputs.version != ''
+              uses: Nessiahs/nuxt-keycloak-oidc/.github/actions/commit@v0.9.0
+              env:
+                  VERSION: ${{ steps.changelog.outputs.version }}
+              with:
+                  token: ${{ secrets.GITHUB_TOKEN }}
+                  message: 'docs(changelog): update changelog [skip ci]'
+                  branch: docs/changelog-${{ env.VERSION }}
+                  path: 'CHANGELOG.md'
+
+            - name: 🔀 Create changelog pull request
+              if: steps.changelog.outputs.version != ''
+              id: pr
+              env:
+                  VERSION: ${{ steps.changelog.outputs.version }}
+              uses: Nessiahs/nuxt-keycloak-oidc/.github/actions/pr@v0.9.0
+              with:
+                  base: 'main'
+                  head: docs/changelog-${{ steps.changelog.outputs.version }}
+                  title: 'docs(changelog): update changelog for version ${{ steps.changelog.outputs.version }}'
+                  token: ${{ secrets.PAT_TOKEN }}
+
+            - name: ✅ Merge changelog pull request
+              if: steps.changelog.outputs.version != '' && steps.pr.outputs.number != ''
+              uses: Nessiahs/nuxt-keycloak-oidc/.github/actions/merge@v0.9.0
+              with:
+                  token: ${{ secrets.PAT_TOKEN }}
+                  number: ${{ steps.pr.outputs.number }}
