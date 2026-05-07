@@ -24,7 +24,7 @@ The demo showcases:
 - Vue 3 composables
 - automatic cross-component updates
 
-👉 [Open the interactive StackBlitz demo](https://stackblitz.com/edit/dexie-reactive-demo)
+👉 [Open the interactive StackBlitz demo](https://stackblitz.com/~/github.com/Nessiahs/dexie-reactive-playground)
 
 ## Why dexie-reactive?
 
