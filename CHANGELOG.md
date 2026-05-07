@@ -1,3 +1,26 @@
+## 🚀 Version 1.2.1 (2026-05-07)
+
+### 🐛 Fixes
+* update StackBlitz demo link (a1b3468e65e444a98a10a8a528e8d288fac7e6f1)
+* update StackBlitz demo link ([#54](https://github.com/Nessiahs/dexie-reactive/issues/54)) (8921f018950a9e31f914f0d785ab8d0e2617ade5)
+
+### 🧪 Tests
+* split live query unit tests (b11e6857aa4f38b963e81957f5e9356cd2e616dc)
+* split live query unit tests ([#53](https://github.com/Nessiahs/dexie-reactive/issues/53)) (68ca70ade0a81ff116e7ec17942c47a32ea1500f)
+
+### 🧠 Refactoring
+* normalize live query entry naming (108c40f493bc6a2bd53c4ead30cd6827d854dfa4)
+* normalize live query entry naming ([#51](https://github.com/Nessiahs/dexie-reactive/issues/51)) (0cb6dc60ea0ca3632ef24ff78b354c28418d258b)
+
+### 📚 Documentation
+* add contributor guide (79af333a4dcbac81fe3b52e5e5b5d11f974f9ad5)
+* add contributor guide ([#47](https://github.com/Nessiahs/dexie-reactive/issues/47)) (1b483f8a02f94ca1c932c78ab1190e3121c83a9a)
+* add GitHub issue and pull request templates (d31998cf07876dbdad10bd51f8bd39bd45634ca6)
+* add GitHub issue and pull request templates ([#48](https://github.com/Nessiahs/dexie-reactive/issues/48)) (dff4e154c32bb7837f5c70241049b48be63fe820)
+* add security policy (2cc0a44fa7817e40dd5840c8c836b8da383fa09c)
+* add security policy ([#49](https://github.com/Nessiahs/dexie-reactive/issues/49)) (fdf72656bf9da0afe2f56af7f444de4b03232dfe)
+* update changelog [skip ci] (e1760f7e914ee61d99173d0d21c99c2c63fe8932)
+
 ## 🚀 Version 1.2.0 (2026-05-06)
 
 ### 🚀 Features
