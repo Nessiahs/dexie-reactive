@@ -70,6 +70,38 @@ test('stops and restarts one consumer without affecting shared producer updates'
     await expect(page.getByTestId('consumer-error')).toHaveText('false')
 })
 
+test('reattaches a mounted consumer after producer cleanup and replacement', async ({
+    page,
+}) => {
+    await page.goto('/')
+
+    await page.getByTestId('producer-name-input').fill('Ada')
+    await page.getByTestId('producer-add-button').click()
+
+    await expect(page.getByTestId('producer-names')).toHaveText('Ada')
+    await expect(page.getByTestId('consumer-names')).toHaveText('Ada')
+    await expect(page.getByTestId('consumer-loading')).toHaveText('false')
+
+    await page.evaluate(() => window.dexieReactiveTest.hideProducer())
+
+    await expect(page.getByTestId('producer')).toHaveCount(0)
+    await expect(page.getByTestId('consumer-names')).toHaveText('Ada')
+    await expect(page.getByTestId('consumer-loading')).toHaveText('true')
+    await expect(page.getByTestId('consumer-error')).toHaveText('false')
+
+    await page.evaluate(() => window.dexieReactiveTest.showProducer())
+
+    await expect(page.getByTestId('producer-names')).toHaveText('Ada')
+    await expect(page.getByTestId('consumer-names')).toHaveText('Ada')
+    await expect(page.getByTestId('consumer-loading')).toHaveText('false')
+
+    await page.getByTestId('producer-name-input').fill('Grace')
+    await page.getByTestId('producer-add-button').click()
+
+    await expect(page.getByTestId('producer-names')).toHaveText('Ada,Grace')
+    await expect(page.getByTestId('consumer-names')).toHaveText('Ada,Grace')
+})
+
 test('surfaces duplicate producer misuse in a real browser runtime', async ({
     page,
 }) => {
