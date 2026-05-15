@@ -13,6 +13,17 @@ component owns the real Dexie subscription as a producer. Other components can
 subscribe to the same reactive state by key without creating another Dexie
 subscription.
 
+## Contents
+
+- [Live Demo](#live-demo)
+- [Why dexie-reactive?](#why-dexie-reactive)
+- [Quick Start](#quick-start)
+- [Core Model](#core-model)
+- [Public API](#public-api)
+- [Lifecycle Overview](#lifecycle-overview)
+- [Architecture Decision Records](#architecture-decision-records)
+- [Testing Strategy](#testing-strategy)
+
 ## Live Demo
 
 See how multiple Vue components share the same reactive Dexie `liveQuery` state without creating duplicate subscriptions.
@@ -182,6 +193,9 @@ and never creates a Dexie subscription.
 An active consumer receives the shared reactive refs by key. It keeps local
 controls so `stop()` and `restart()` only affect that consumer attachment, not
 the producer-owned Dexie subscription.
+
+For detailed producer and consumer states, cleanup, and reattach flows, see
+[Live Query Lifecycle](./docs/live-query-lifecycle.md).
 
 ## Architecture Decision Records
 
@@ -366,57 +380,20 @@ Consumer controls never stop, restart, or create the Dexie live query. If you
 previously called consumer controls to manage the shared subscription, call the
 producer controls returned by `useLiveQuery` instead.
 
-## Flow Diagrams
+## Lifecycle Overview
 
-### Producer Flow
+`useLiveQuery` creates one shared live query state for a key and owns the Dexie
+subscription behind it. `useLiveQuerySubscription` consumes that state by key
+without creating another Dexie subscription.
 
-```mermaid
-flowchart TD
-    A["useLiveQuery(queryFn, options)"] --> B["Resolve or generate key"]
-    B --> C{"Key already exists?"}
-    C -->|Yes| D["Throw duplicate producer error"]
-    C -->|No| E["Create shared reactive state"]
-    E --> F["Store state in subscription map"]
-    F --> G["Emit registration message"]
-    G --> H{"Browser runtime?"}
-    H -->|No| I["Do not create Dexie subscription"]
-    H -->|Yes| J["Start Dexie liveQuery"]
-    J --> K["Apply latest result to shared refs"]
-```
+Consumers can mount before or after the producer. If no producer exists, a
+consumer waits for the key and attaches when the producer registers. Duplicate
+producers for the same key fail immediately so subscription ownership stays
+explicit.
 
-### Consumer Flow
-
-```mermaid
-flowchart TD
-    A["useLiveQuerySubscription(key)"] --> B{"Key exists in subscription map?"}
-    B -->|Yes| C["Create local consumer state"]
-    C --> D["Attach local refs to shared refs"]
-    B -->|No| E["Create waiting consumer state"]
-    E --> F["Register waiting consumer by key"]
-    F --> G["Return local consumer state"]
-    D --> G
-```
-
-### Waiting Consumer Flow
-
-```mermaid
-flowchart TD
-    A["Consumer subscribes before producer"] --> B["Waiting consumer is stored by key"]
-    B --> C["Producer later registers same key"]
-    C --> D["Registration message is emitted synchronously"]
-    D --> E["Waiting consumer attaches local refs to producer refs"]
-    E --> F["Waiting entry is removed"]
-```
-
-### Duplicate Producer Error Flow
-
-```mermaid
-flowchart TD
-    A["First useLiveQuery registers key"] --> B["subscriptionMap has key"]
-    B --> C["Second useLiveQuery uses same key"]
-    C --> D["No second Dexie subscription is created"]
-    D --> E["Error is thrown immediately"]
-```
+For detailed lifecycle diagrams covering producer-first, consumer-first,
+producer cleanup, snapshot waiting, reattach behavior, and stopped consumers,
+see [Live Query Lifecycle](./docs/live-query-lifecycle.md).
 
 ## Limitations
 
