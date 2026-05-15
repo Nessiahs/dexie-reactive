@@ -1,3 +1,16 @@
+## 🚀 Version 1.4.0 (2026-05-15)
+
+### 🚀 Features
+* reattach consumers after producer cleanup (3378c741f5040b324090c16757e9984109924263)
+* reattach consumers after producer cleanup ([#84](https://github.com/Nessiahs/dexie-reactive/issues/84)) (f5b30fe09dbae7255614e32c0edaa2406e4ecb5c)
+
+### 📚 Documentation
+* add consumer lifecycle ADR (b5527d5c16a1edb3ba10c57602ef99b9b7b2dde6)
+* add consumer lifecycle ADR ([#82](https://github.com/Nessiahs/dexie-reactive/issues/82)) (e74a62d6f3d09db1052cb143bf01187e6128523b)
+* add live query lifecycle guide (f6a107a02f4578bdf17913cab6a7911dca378c65)
+* add live query lifecycle guide ([#83](https://github.com/Nessiahs/dexie-reactive/issues/83)) (288a1056bdf857dc01098c631aead4b679b7ee2a)
+* update changelog (6f19d36583cc5bc3f458bbac6f73cb3fd6e53fa3)
+
 ## 🚀 Version 1.3.2 (2026-05-15)
 
 ### 🐛 Fixes
