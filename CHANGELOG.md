@@ -1,3 +1,13 @@
+## 🚀 Version 1.3.2 (2026-05-15)
+
+### 🐛 Fixes
+* tolerate missing changelog checks (2335b8c11fd22e63c2cc60d4b1318af349e493fa)
+* tolerate missing changelog checks ([#77](https://github.com/Nessiahs/dexie-reactive/issues/77)) (c3f06f9bf6827fe7b522ea76c1840a3255881b4f)
+
+### 📚 Documentation
+* update changelog (5094de33a168c197b07be21f2805548c36647205)
+* update changelog for version 1.3.1 ([#75](https://github.com/Nessiahs/dexie-reactive/issues/75)) (8a60b9c021f7e5d5da7fa5e1945a34fcc6ae86b4)
+
 ## 🚀 Version 1.3.1 (2026-05-15)
 
 ### 🐛 Fixes
