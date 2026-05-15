@@ -23,6 +23,7 @@ interface BrowserIntegrationApi {
     addFriend: (name: string) => Promise<void>
     cleanup: () => Promise<void>
     hideConsumer: () => Promise<void>
+    showSecondConsumer: () => Promise<void>
     showConsumer: () => Promise<void>
     showDuplicateProducer: () => Promise<void>
 }
@@ -41,6 +42,7 @@ database.version(1).stores({
 })
 
 const isConsumerMounted = ref(true)
+const isSecondConsumerMounted = ref(false)
 const isDuplicateProducerMounted = ref(false)
 
 const namesQuery = () => database.friends.orderBy('id').toArray()
@@ -137,13 +139,22 @@ const ProducerComponent = defineComponent({
 
 const ConsumerComponent = defineComponent({
     name: 'ConsumerComponent',
-    setup() {
+    props: {
+        controls: Boolean,
+        testIdPrefix: {
+            default: 'consumer',
+            type: String,
+        },
+    },
+    setup(props) {
         const state = useLiveQuerySubscription<Friend>('friends')
 
-        return () =>
-            h(
+        return () => {
+            const testId = props.testIdPrefix
+
+            return h(
                 'section',
-                { class: 'panel subscriber', 'data-testid': 'consumer' },
+                { class: 'panel subscriber', 'data-testid': testId },
                 [
                     h('div', { class: 'panel-header' }, [
                         h('div', [
@@ -155,27 +166,54 @@ const ConsumerComponent = defineComponent({
                             loading: state.loading.value,
                         }),
                     ]),
+                    props.controls
+                        ? h('div', { class: 'control-row' }, [
+                              h(
+                                  'button',
+                                  {
+                                      'data-testid': `${testId}-stop-button`,
+                                      onClick: () => {
+                                          state.stop()
+                                      },
+                                      type: 'button',
+                                  },
+                                  'Stop',
+                              ),
+                              h(
+                                  'button',
+                                  {
+                                      'data-testid': `${testId}-restart-button`,
+                                      onClick: () => {
+                                          state.restart()
+                                      },
+                                      type: 'button',
+                                  },
+                                  'Restart',
+                              ),
+                          ])
+                        : null,
                     h(FriendList, {
                         emptyLabel: 'Waiting for shared state',
                         names: state.data.value.map((friend) => friend.name),
-                        outputTestId: 'consumer-names',
+                        outputTestId: `${testId}-names`,
                     }),
                     h('div', { class: 'debug-row' }, [
                         h('span', 'loading'),
                         h(
                             'output',
-                            { 'data-testid': 'consumer-loading' },
+                            { 'data-testid': `${testId}-loading` },
                             String(state.loading.value),
                         ),
                         h('span', 'hasError'),
                         h(
                             'output',
-                            { 'data-testid': 'consumer-error' },
+                            { 'data-testid': `${testId}-error` },
                             String(state.hasError.value),
                         ),
                     ]),
                 ],
             )
+        }
     },
 })
 
@@ -240,7 +278,17 @@ const RootComponent = defineComponent({
                 ]),
                 h('section', { class: 'demo-grid' }, [
                     h(ProducerComponent),
-                    isConsumerMounted.value ? h(ConsumerComponent) : null,
+                    isConsumerMounted.value
+                        ? h(ConsumerComponent, {
+                              controls: true,
+                              testIdPrefix: 'consumer',
+                          })
+                        : null,
+                    isSecondConsumerMounted.value
+                        ? h(ConsumerComponent, {
+                              testIdPrefix: 'second-consumer',
+                          })
+                        : null,
                 ]),
                 h(DuplicateProducerBoundary),
             ])
@@ -334,6 +382,10 @@ window.dexieReactiveTest = {
     },
     async hideConsumer() {
         isConsumerMounted.value = false
+        await nextTick()
+    },
+    async showSecondConsumer() {
+        isSecondConsumerMounted.value = true
         await nextTick()
     },
     async showConsumer() {

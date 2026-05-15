@@ -39,6 +39,37 @@ test('propagates Dexie updates to producer and shared consumer components', asyn
     await expect(page.getByTestId('consumer-error')).toHaveText('false')
 })
 
+test('stops and restarts one consumer without affecting shared producer updates', async ({
+    page,
+}) => {
+    await page.goto('/')
+    await page.evaluate(() => window.dexieReactiveTest.showSecondConsumer())
+
+    await page.getByTestId('producer-name-input').fill('Ada')
+    await page.getByTestId('producer-add-button').click()
+
+    await expect(page.getByTestId('producer-names')).toHaveText('Ada')
+    await expect(page.getByTestId('consumer-names')).toHaveText('Ada')
+    await expect(page.getByTestId('second-consumer-names')).toHaveText('Ada')
+
+    await page.getByTestId('consumer-stop-button').click()
+
+    await page.getByTestId('producer-name-input').fill('Grace')
+    await page.getByTestId('producer-add-button').click()
+
+    await expect(page.getByTestId('producer-names')).toHaveText('Ada,Grace')
+    await expect(page.getByTestId('second-consumer-names')).toHaveText(
+        'Ada,Grace',
+    )
+    await expect(page.getByTestId('consumer-names')).toHaveText('Ada')
+    await expect(page.getByTestId('consumer-loading')).toHaveText('false')
+
+    await page.getByTestId('consumer-restart-button').click()
+
+    await expect(page.getByTestId('consumer-names')).toHaveText('Ada,Grace')
+    await expect(page.getByTestId('consumer-error')).toHaveText('false')
+})
+
 test('surfaces duplicate producer misuse in a real browser runtime', async ({
     page,
 }) => {
