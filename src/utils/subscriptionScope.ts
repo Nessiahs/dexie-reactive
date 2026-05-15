@@ -14,6 +14,9 @@ export interface LiveQuerySubscriptionEntry<T> extends LiveQueryState<T> {
 export interface SubscriptionScope {
     subscriptionMap: Map<string, LiveQuerySubscriptionEntry<unknown>>
     waitingConsumers: Map<string, Set<WaitingConsumer<unknown>>>
+    // Lifecycle metadata only; shared reactive state still lives exclusively in
+    // subscriptionMap entries.
+    activeConsumers: Map<string, Set<ConsumerAttachment<unknown>>>
 }
 
 interface WaitingConsumer<T> {
@@ -33,6 +36,7 @@ export function createSubscriptionScope(): SubscriptionScope {
     return {
         subscriptionMap: new Map(),
         waitingConsumers: new Map(),
+        activeConsumers: new Map(),
     }
 }
 
@@ -87,6 +91,7 @@ export function unregisterLiveQueryProducer<T>(
 
     entry.producer.active = false
     scope.subscriptionMap.delete(entry.key)
+    moveActiveConsumersToWaiting(scope, entry.key)
 }
 
 export function resolveLiveQuerySubscription<T>(
@@ -107,6 +112,7 @@ export function resolveLiveQuerySubscription<T>(
 
     onScopeDispose(() => {
         removeWaitingConsumer(scope, key, attachment.waitingConsumer)
+        removeActiveConsumer(scope, key, attachment)
     }, true)
 
     return state
@@ -124,6 +130,34 @@ function addWaitingConsumer<T>(
     const consumers = scope.waitingConsumers.get(key) ?? new Set()
     consumers.add(waitingConsumer as WaitingConsumer<unknown>)
     scope.waitingConsumers.set(key, consumers)
+}
+
+function addActiveConsumer<T>(
+    scope: SubscriptionScope,
+    key: string,
+    attachment: ConsumerAttachment<T>,
+): void {
+    const consumers = scope.activeConsumers.get(key) ?? new Set()
+    consumers.add(attachment as ConsumerAttachment<unknown>)
+    scope.activeConsumers.set(key, consumers)
+}
+
+function removeActiveConsumer<T>(
+    scope: SubscriptionScope,
+    key: string,
+    attachment: ConsumerAttachment<T>,
+): void {
+    const consumers = scope.activeConsumers.get(key)
+
+    if (!consumers) {
+        return
+    }
+
+    consumers.delete(attachment as ConsumerAttachment<unknown>)
+
+    if (consumers.size === 0) {
+        scope.activeConsumers.delete(key)
+    }
 }
 
 function removeWaitingConsumer<T>(
@@ -188,6 +222,7 @@ function attachOrWaitForSharedState<T>(
         attachment.key,
         attachment.waitingConsumer,
     )
+    removeActiveConsumer(attachment.scope, attachment.key, attachment)
 
     const entry = attachment.scope.subscriptionMap.get(attachment.key)
 
@@ -210,6 +245,7 @@ function stopConsumerAttachment<T>(attachment: ConsumerAttachment<T>): void {
         attachment.key,
         attachment.waitingConsumer,
     )
+    removeActiveConsumer(attachment.scope, attachment.key, attachment)
     applySnapshotDefaults(attachment.state)
 }
 
@@ -229,6 +265,8 @@ function attachToSharedState<T>(
     state.loading = sharedEntry.loading
     state.hasError = sharedEntry.hasError
     state.error = sharedEntry.error
+
+    addActiveConsumer(attachment.scope, attachment.key, attachment)
 }
 
 function applyWaitingDefaults<T>(state: LiveQueryState<T>): void {
@@ -252,5 +290,35 @@ function applySnapshotDefaults<T>(state: LiveQueryState<T>): void {
 
     if (state.error) {
         state.error = ref(currentError)
+    }
+}
+
+function applySnapshotWaitingDefaults<T>(state: LiveQueryState<T>): void {
+    // The consumer scope still exists, so keep useful UI data while marking that
+    // producer ownership is temporarily missing for this key.
+    state.data = shallowRef([...state.data.value])
+    state.loading = ref(true)
+    state.hasError = ref(false)
+
+    if (state.error) {
+        state.error = ref(undefined)
+    }
+}
+
+function moveActiveConsumersToWaiting(
+    scope: SubscriptionScope,
+    key: string,
+): void {
+    const consumers = scope.activeConsumers.get(key)
+
+    if (!consumers) {
+        return
+    }
+
+    scope.activeConsumers.delete(key)
+
+    for (const attachment of consumers) {
+        applySnapshotWaitingDefaults(attachment.state)
+        addWaitingConsumer(scope, key, attachment.waitingConsumer)
     }
 }

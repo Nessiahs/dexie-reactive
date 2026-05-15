@@ -23,9 +23,11 @@ interface BrowserIntegrationApi {
     addFriend: (name: string) => Promise<void>
     cleanup: () => Promise<void>
     hideConsumer: () => Promise<void>
+    hideProducer: () => Promise<void>
     showSecondConsumer: () => Promise<void>
     showConsumer: () => Promise<void>
     showDuplicateProducer: () => Promise<void>
+    showProducer: () => Promise<void>
 }
 
 declare global {
@@ -44,6 +46,7 @@ database.version(1).stores({
 const isConsumerMounted = ref(true)
 const isSecondConsumerMounted = ref(false)
 const isDuplicateProducerMounted = ref(false)
+const isProducerMounted = ref(true)
 
 const namesQuery = () => database.friends.orderBy('id').toArray()
 
@@ -277,7 +280,7 @@ const RootComponent = defineComponent({
                     ),
                 ]),
                 h('section', { class: 'demo-grid' }, [
-                    h(ProducerComponent),
+                    isProducerMounted.value ? h(ProducerComponent) : null,
                     isConsumerMounted.value
                         ? h(ConsumerComponent, {
                               controls: true,
@@ -384,6 +387,10 @@ window.dexieReactiveTest = {
         isConsumerMounted.value = false
         await nextTick()
     },
+    async hideProducer() {
+        isProducerMounted.value = false
+        await nextTick()
+    },
     async showSecondConsumer() {
         isSecondConsumerMounted.value = true
         await nextTick()
@@ -394,6 +401,10 @@ window.dexieReactiveTest = {
     },
     async showDuplicateProducer() {
         isDuplicateProducerMounted.value = true
+        await nextTick()
+    },
+    async showProducer() {
+        isProducerMounted.value = true
         await nextTick()
     },
 }

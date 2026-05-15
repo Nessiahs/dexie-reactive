@@ -5,8 +5,7 @@ This document explains the producer and consumer lifecycle used by
 
 It follows
 [ADR 0001: Consumer Lifecycle After Producer Cleanup](./adr/0001-consumer-lifecycle-after-producer-cleanup.md).
-The ADR records the accepted target behavior. Runtime implementation of the
-consumer re-waiting flow is tracked separately in issue #80.
+The ADR records the accepted behavior implemented by the runtime lifecycle.
 
 ## Ownership Model
 
@@ -179,9 +178,3 @@ Consumer controls from `useLiveQuerySubscription` affect only that consumer:
 
 Consumer controls never stop, restart, or create the producer-owned Dexie live
 query.
-
-## Implementation Boundary
-
-This document describes the accepted lifecycle behavior. Until the runtime work
-from issue #80 is merged, existing consumers may still keep old producer refs
-after producer cleanup instead of automatically entering `SnapshotWaiting`.

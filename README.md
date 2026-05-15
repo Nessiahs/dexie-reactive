@@ -391,6 +391,10 @@ consumer waits for the key and attaches when the producer registers. Duplicate
 producers for the same key fail immediately so subscription ownership stays
 explicit.
 
+If a producer is cleaned up while a consumer remains mounted, the consumer keeps
+its last data snapshot, waits for the same key, and reattaches when a replacement
+producer registers.
+
 For detailed lifecycle diagrams covering producer-first, consumer-first,
 producer cleanup, snapshot waiting, reattach behavior, and stopped consumers,
 see [Live Query Lifecycle](./docs/live-query-lifecycle.md).
@@ -451,7 +455,7 @@ The unit test suite focuses on the shared live query contract:
 - browser singleton and SSR-isolated subscription scopes
 - producer lifecycle for start, stop, restart, unsubscribe, and cleanup
 - duplicate producer rejection without creating a second Dexie subscription
-- consumer coordination for producer-first and waiting-consumer flows
+- consumer coordination for producer-first, waiting, cleanup, and reattach flows
 - shared reactive state references instead of cloned consumer state
 - stale result protection across stop, restart, scope disposal, and rapid query changes
 - missing, invalid, and changing query function handling
@@ -461,8 +465,9 @@ The unit test suite focuses on the shared live query contract:
 
 The browser integration suite mounts a minimal Vue app in Chromium with a real
 Dexie IndexedDB database. It verifies producer and consumer components sharing
-one key, database updates propagating to all mounted components, consumer
-unmount/remount behavior, and duplicate producer errors in the browser runtime.
+one key, database updates propagating to all mounted components, producer and
+consumer unmount/remount behavior, reattach after producer cleanup, and duplicate
+producer errors in the browser runtime.
 
 ## Scripts
 

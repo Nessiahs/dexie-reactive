@@ -324,6 +324,30 @@ describe('subscription scope coordination', () => {
         expect(scope.waitingConsumers.has('friends')).toBe(false)
     })
 
+    it('removes active consumers when their effect scope is disposed', () => {
+        vi.stubGlobal('window', {})
+
+        const scope = resolveSubscriptionScope()
+        const producer = useLiveQuery(
+            () => Promise.resolve([{ id: 'friend-1' }]),
+            {
+                key: 'friends',
+            },
+        )
+        const componentScope = effectScope()
+
+        componentScope.run(() => {
+            useLiveQuerySubscription<{ id: string }>('friends')
+        })
+
+        expect(scope.activeConsumers.get('friends')?.size).toBe(1)
+
+        componentScope.stop()
+
+        expect(scope.activeConsumers.has('friends')).toBe(false)
+        expect(scope.subscriptionMap.get('friends')).toBe(producer)
+    })
+
     it('removes producer entries when their effect scope is disposed', () => {
         vi.stubGlobal('window', {})
 
@@ -345,6 +369,184 @@ describe('subscription scope coordination', () => {
         componentScope.stop()
 
         expect(scope.subscriptionMap.has('friends')).toBe(false)
+    })
+
+    it('moves active consumers back to waiting with a snapshot when their producer scope is disposed', () => {
+        vi.stubGlobal('window', {})
+        vi.stubEnv('NODE_ENV', 'development')
+
+        const scope = resolveSubscriptionScope()
+        const componentScope = effectScope()
+        let producer: LiveQueryState<{ id: string }> | undefined
+
+        componentScope.run(() => {
+            producer = useLiveQuery(
+                () => Promise.resolve([{ id: 'friend-1' }]),
+                {
+                    key: 'friends',
+                },
+            )
+        })
+
+        const consumer = useLiveQuerySubscription<{ id: string }>('friends')
+        const failure = new Error('Query failed')
+
+        dexieMock.subscriptions[0]?.observer.next([{ id: 'friend-1' }])
+        dexieMock.subscriptions[0]?.observer.error(failure)
+
+        expect(consumer.data).toBe(producer?.data)
+        expect(consumer.hasError.value).toBe(true)
+        expect(consumer.error?.value).toBe(failure)
+
+        componentScope.stop()
+
+        expect(
+            dexieMock.subscriptions[0]?.subscription.unsubscribe,
+        ).toHaveBeenCalledOnce()
+        expect(scope.subscriptionMap.has('friends')).toBe(false)
+        expect(scope.activeConsumers.has('friends')).toBe(false)
+        expect(scope.waitingConsumers.get('friends')?.size).toBe(1)
+        expect(consumer.data).not.toBe(producer?.data)
+        expect(consumer.data.value).toEqual([{ id: 'friend-1' }])
+        expect(consumer.loading.value).toBe(true)
+        expect(consumer.hasError.value).toBe(false)
+        expect(consumer.error?.value).toBeUndefined()
+    })
+
+    it('resets a snapshot waiting consumer when it restarts without a producer', () => {
+        vi.stubGlobal('window', {})
+
+        const scope = resolveSubscriptionScope()
+        const producerScope = effectScope()
+
+        producerScope.run(() => {
+            useLiveQuery(() => Promise.resolve([{ id: 'friend-1' }]), {
+                key: 'friends',
+            })
+        })
+
+        const consumer = useLiveQuerySubscription<{ id: string }>('friends')
+
+        dexieMock.subscriptions[0]?.observer.next([{ id: 'friend-1' }])
+        producerScope.stop()
+
+        expect(consumer.data.value).toEqual([{ id: 'friend-1' }])
+        expect(consumer.loading.value).toBe(true)
+
+        consumer.restart()
+
+        expect(scope.waitingConsumers.get('friends')?.size).toBe(1)
+        expect(consumer.data.value).toEqual([])
+        expect(consumer.loading.value).toBe(true)
+        expect(consumer.hasError.value).toBe(false)
+    })
+
+    it('reattaches snapshot waiting consumers to a replacement producer for the same key', () => {
+        vi.stubGlobal('window', {})
+
+        const scope = resolveSubscriptionScope()
+        const firstProducerScope = effectScope()
+        let firstProducer: LiveQueryState<{ id: string }> | undefined
+
+        firstProducerScope.run(() => {
+            firstProducer = useLiveQuery(
+                () => Promise.resolve([{ id: 'friend-1' }]),
+                {
+                    key: 'friends',
+                },
+            )
+        })
+
+        const consumer = useLiveQuerySubscription<{ id: string }>('friends')
+
+        dexieMock.subscriptions[0]?.observer.next([{ id: 'friend-1' }])
+        firstProducerScope.stop()
+
+        expect(consumer.data.value).toEqual([{ id: 'friend-1' }])
+        expect(consumer.loading.value).toBe(true)
+        expect(scope.waitingConsumers.get('friends')?.size).toBe(1)
+
+        const secondProducer = useLiveQuery(
+            () => Promise.resolve([{ id: 'friend-2' }]),
+            {
+                key: 'friends',
+            },
+        )
+
+        expect(consumer.data).not.toBe(firstProducer?.data)
+        expect(consumer.data).toBe(secondProducer.data)
+        expect(scope.waitingConsumers.has('friends')).toBe(false)
+        expect(scope.activeConsumers.get('friends')?.size).toBe(1)
+
+        dexieMock.subscriptions[1]?.observer.next([{ id: 'friend-2' }])
+
+        expect(consumer.data.value).toEqual([{ id: 'friend-2' }])
+        expect(consumer.loading.value).toBe(false)
+    })
+
+    it('moves multiple active consumers back to waiting and reattaches them together', () => {
+        vi.stubGlobal('window', {})
+
+        const scope = resolveSubscriptionScope()
+        const producerScope = effectScope()
+
+        producerScope.run(() => {
+            useLiveQuery(() => Promise.resolve([{ id: 'friend-1' }]), {
+                key: 'friends',
+            })
+        })
+
+        const firstConsumer = useLiveQuerySubscription<{ id: string }>(
+            'friends',
+        )
+        const secondConsumer = useLiveQuerySubscription<{ id: string }>(
+            'friends',
+        )
+
+        dexieMock.subscriptions[0]?.observer.next([{ id: 'friend-1' }])
+        producerScope.stop()
+
+        expect(scope.waitingConsumers.get('friends')?.size).toBe(2)
+        expect(firstConsumer.data.value).toEqual([{ id: 'friend-1' }])
+        expect(secondConsumer.data.value).toEqual([{ id: 'friend-1' }])
+        expect(firstConsumer.loading.value).toBe(true)
+        expect(secondConsumer.loading.value).toBe(true)
+
+        const replacementProducer = useLiveQuery(
+            () => Promise.resolve([{ id: 'friend-2' }]),
+            {
+                key: 'friends',
+            },
+        )
+
+        expect(firstConsumer.data).toBe(replacementProducer.data)
+        expect(secondConsumer.data).toBe(replacementProducer.data)
+        expect(scope.waitingConsumers.has('friends')).toBe(false)
+        expect(scope.activeConsumers.get('friends')?.size).toBe(2)
+    })
+
+    it('does not move manually stopped consumers back to waiting on producer cleanup', () => {
+        vi.stubGlobal('window', {})
+
+        const scope = resolveSubscriptionScope()
+        const producerScope = effectScope()
+
+        producerScope.run(() => {
+            useLiveQuery(() => Promise.resolve([{ id: 'friend-1' }]), {
+                key: 'friends',
+            })
+        })
+
+        const consumer = useLiveQuerySubscription<{ id: string }>('friends')
+
+        dexieMock.subscriptions[0]?.observer.next([{ id: 'friend-1' }])
+        consumer.stop()
+        producerScope.stop()
+
+        expect(scope.waitingConsumers.has('friends')).toBe(false)
+        expect(scope.activeConsumers.has('friends')).toBe(false)
+        expect(consumer.data.value).toEqual([{ id: 'friend-1' }])
+        expect(consumer.loading.value).toBe(false)
     })
 
     it('unsubscribes and ignores stale updates when a producer scope is disposed', () => {
