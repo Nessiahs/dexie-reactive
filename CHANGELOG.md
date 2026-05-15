@@ -1,3 +1,12 @@
+## 🚀 Version 1.3.1 (2026-05-15)
+
+### 🐛 Fixes
+* detach consumer controls locally (fbf23e3e322314ecd4cc604591ce62d215861f97)
+* detach consumer controls locally ([#74](https://github.com/Nessiahs/dexie-reactive/issues/74)) (bff51347ca9d73299dee8b69715672f3cc925eb2)
+
+### 📚 Documentation
+* update changelog (6290b47e4dc9a6a94d8547e7e0f96b2021ee2272)
+
 ## 🚀 Version 1.3.0 (2026-05-15)
 
 ### 🚀 Features
