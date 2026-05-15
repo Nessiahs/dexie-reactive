@@ -1,3 +1,12 @@
+## 🚀 Version 1.3.0 (2026-05-15)
+
+### 🚀 Features
+* consolidate dependabot findings (acbf333ad07c19b62d5cc24e9c849d0720d971fa)
+* consolidate Dependabot findings ([#69](https://github.com/Nessiahs/dexie-reactive/issues/69)) (19dff8c973b81d5c054015e61be08012948c872b)
+
+### 📚 Documentation
+* update changelog (a75c75143531c8a2f77a5c93908f0efd87f0898e)
+
 ## 🚀 Version 1.2.1 (2026-05-07)
 
 ### 🐛 Fixes
