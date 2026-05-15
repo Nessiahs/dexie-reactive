@@ -24,7 +24,7 @@ jobs:
 
             - name: 🟢 Setup Node.js
               if: steps.changelog_commit.outputs.is_changelog_pull_request != 'true'
-              uses: actions/setup-node@v5
+              uses: actions/setup-node@v6
               with:
                   node-version: 22
                   cache: npm
@@ -51,7 +51,7 @@ jobs:
 
             - name: 🎭 Cache Playwright browsers
               if: steps.changelog_commit.outputs.is_changelog_commit != 'true'
-              uses: actions/cache@v4
+              uses: actions/cache@v5
               with:
                   path: ~/.cache/ms-playwright
                   key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
