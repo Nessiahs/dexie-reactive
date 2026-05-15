@@ -65,11 +65,55 @@ jobs:
               timeout-minutes: 10
               env:
                   GH_TOKEN: ${{ secrets.PAT_TOKEN }}
-              run: >
-                  gh pr checks "${{ steps.pr.outputs.number }}"
-                  --repo "${{ github.repository }}"
-                  --watch
-                  --fail-fast
+                  PR_NUMBER: ${{ steps.pr.outputs.number }}
+                  REPOSITORY: ${{ github.repository }}
+              run: |
+                  set -euo pipefail
+
+                  max_attempts=100
+                  sleep_seconds=5
+
+                  for attempt in $(seq 1 "$max_attempts"); do
+                    set +e
+                    checks_count="$(gh pr checks "$PR_NUMBER" \
+                      --repo "$REPOSITORY" \
+                      --json name \
+                      --jq 'length' 2>/dev/null)"
+                    checks_status=$?
+                    set -e
+
+                    if [[ "$checks_status" -eq 0 && "$checks_count" -gt 0 ]]; then
+                      #
+                      # Once checks exist, let gh own the final pass/fail
+                      # decision. Pending checks are expected at this point.
+                      #
+                      # Missing checks are best-effort for changelog PRs, but
+                      # reported failures should still block publishing.
+                      #
+                      gh pr checks "$PR_NUMBER" \
+                        --repo "$REPOSITORY" \
+                        --watch \
+                        --fail-fast
+                      exit 0
+                    fi
+
+                    if [[ "$checks_status" -ne 0 ]]; then
+                      set +e
+                      checks_output="$(gh pr checks "$PR_NUMBER" --repo "$REPOSITORY" 2>&1)"
+                      output_status=$?
+                      set -e
+
+                      if [[ "$checks_output" != *"no checks reported"* ]]; then
+                        echo "$checks_output"
+                        exit "$output_status"
+                      fi
+                    fi
+
+                    echo "Waiting for changelog PR checks ($attempt/$max_attempts)..."
+                    sleep "$sleep_seconds"
+                  done
+
+                  echo "::warning::No checks were reported for changelog PR #$PR_NUMBER before timeout; continuing release."
 
             - name: ✅ Merge changelog pull request
               if: steps.changelog.outputs.version != '' && steps.pr.outputs.number != ''
