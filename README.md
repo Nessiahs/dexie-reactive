@@ -183,6 +183,12 @@ An active consumer receives the shared reactive refs by key. It keeps local
 controls so `stop()` and `restart()` only affect that consumer attachment, not
 the producer-owned Dexie subscription.
 
+## Architecture Decision Records
+
+- [0001: Consumer Lifecycle After Producer Cleanup](./docs/adr/0001-consumer-lifecycle-after-producer-cleanup.md)
+  defines the decision space for consumers that outlive their producer,
+  including current behavior, consumer handover, and re-waiting with a snapshot.
+
 ## Public API
 
 The package exports only the stable composables and public types:

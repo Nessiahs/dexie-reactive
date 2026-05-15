@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="520" viewBox="0 0 920 520" role="img" aria-labelledby="title desc">
+  <title id="title">Consumer lifecycle options after producer cleanup</title>
+  <desc id="desc">A high-level decision diagram comparing current behavior, consumer takeover, and consumer re-waiting with snapshot.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155" />
+    </marker>
+    <style>
+      .label {
+        fill: #0f172a;
+        font-family: Arial, sans-serif;
+        font-size: 17px;
+        font-weight: 700;
+      }
+      .text {
+        fill: #334155;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+      }
+      .small {
+        fill: #475569;
+        font-family: Arial, sans-serif;
+        font-size: 13px;
+      }
+      .box {
+        fill: #ffffff;
+        stroke: #94a3b8;
+        stroke-width: 1.5;
+      }
+      .chosen {
+        fill: #ecfdf5;
+        stroke: #059669;
+        stroke-width: 2;
+      }
+      .line {
+        fill: none;
+        stroke: #334155;
+        stroke-width: 1.8;
+        marker-end: url(#arrow);
+      }
+      .muted {
+        fill: none;
+        stroke: #94a3b8;
+        stroke-width: 1.5;
+        marker-end: url(#arrow);
+      }
+    </style>
+  </defs>
+
+  <rect width="920" height="520" fill="#f8fafc" />
+
+  <text x="460" y="42" text-anchor="middle" class="label">Consumer lifecycle options after producer cleanup</text>
+
+  <rect x="300" y="72" width="320" height="64" rx="6" class="box" />
+  <text x="460" y="99" text-anchor="middle" class="label">Producer for key is cleaned up</text>
+  <text x="460" y="121" text-anchor="middle" class="small">Dexie subscription is removed by the producer</text>
+
+  <line x1="460" y1="136" x2="460" y2="174" class="line" />
+
+  <rect x="56" y="184" width="240" height="132" rx="6" class="box" />
+  <text x="176" y="213" text-anchor="middle" class="label">Option 1</text>
+  <text x="176" y="238" text-anchor="middle" class="text">Keep current behavior</text>
+  <text x="176" y="263" text-anchor="middle" class="small">Consumer keeps old state</text>
+  <text x="176" y="284" text-anchor="middle" class="small">No automatic reattach</text>
+  <text x="176" y="305" text-anchor="middle" class="small">Risk: silent stale endpoint</text>
+
+  <rect x="340" y="184" width="240" height="132" rx="6" class="box" />
+  <text x="460" y="213" text-anchor="middle" class="label">Option 2</text>
+  <text x="460" y="238" text-anchor="middle" class="text">Consumer handover</text>
+  <text x="460" y="263" text-anchor="middle" class="small">Consumer starts liveQuery</text>
+  <text x="460" y="284" text-anchor="middle" class="small">Needs query ownership</text>
+  <text x="460" y="305" text-anchor="middle" class="small">Breaks key-only contract</text>
+
+  <rect x="624" y="184" width="240" height="132" rx="6" class="chosen" />
+  <text x="744" y="213" text-anchor="middle" class="label">Option 3</text>
+  <text x="744" y="238" text-anchor="middle" class="text">Re-wait with snapshot</text>
+  <text x="744" y="263" text-anchor="middle" class="small">Keep last data snapshot</text>
+  <text x="744" y="284" text-anchor="middle" class="small">Wait for same key</text>
+  <text x="744" y="305" text-anchor="middle" class="small">Chosen decision</text>
+
+  <line x1="460" y1="174" x2="176" y2="184" class="muted" />
+  <line x1="460" y1="174" x2="460" y2="184" class="muted" />
+  <line x1="460" y1="174" x2="744" y2="184" class="line" />
+
+  <line x1="744" y1="316" x2="744" y2="354" class="line" />
+
+  <rect x="574" y="364" width="340" height="112" rx="6" class="chosen" />
+  <text x="744" y="393" text-anchor="middle" class="label">Selected lifecycle</text>
+  <text x="744" y="419" text-anchor="middle" class="small">Detach from old producer refs</text>
+  <text x="744" y="440" text-anchor="middle" class="small">Set loading true and clear error state</text>
+  <text x="744" y="461" text-anchor="middle" class="small">Attach when replacement producer registers</text>
+</svg>
