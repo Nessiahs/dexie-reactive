@@ -60,6 +60,17 @@ jobs:
                   title: 'docs(changelog): update changelog for version ${{ steps.changelog.outputs.version }}'
                   token: ${{ secrets.PAT_TOKEN }}
 
+            - name: ⏳ Wait for changelog pull request checks
+              if: steps.changelog.outputs.version != '' && steps.pr.outputs.number != ''
+              timeout-minutes: 10
+              env:
+                  GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+              run: >
+                  gh pr checks "${{ steps.pr.outputs.number }}"
+                  --repo "${{ github.repository }}"
+                  --watch
+                  --fail-fast
+
             - name: ✅ Merge changelog pull request
               if: steps.changelog.outputs.version != '' && steps.pr.outputs.number != ''
               uses: Nessiahs/nuxt-keycloak-oidc/.github/actions/merge@v0.9.0
