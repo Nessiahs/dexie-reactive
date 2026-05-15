@@ -1,4 +1,4 @@
-import { onScopeDispose } from 'vue'
+import { onScopeDispose, ref, shallowRef } from 'vue'
 import type { LiveQueryState } from '../types'
 import { createLiveQueryState } from './createLiveQueryState'
 
@@ -18,6 +18,13 @@ export interface SubscriptionScope {
 
 interface WaitingConsumer<T> {
     attach(sharedEntry: LiveQuerySubscriptionEntry<T>): void
+}
+
+interface ConsumerAttachment<T> {
+    key: string
+    scope: SubscriptionScope
+    state: LiveQueryState<T>
+    waitingConsumer: WaitingConsumer<T>
 }
 
 let browserSubscriptionScope: SubscriptionScope | undefined
@@ -86,25 +93,20 @@ export function resolveLiveQuerySubscription<T>(
     scope: SubscriptionScope,
     key: string,
 ): LiveQueryState<T> {
-    const entry = scope.subscriptionMap.get(key)
-
-    if (entry) {
-        return entry as LiveQuerySubscriptionEntry<T>
-    }
-
     const state = createLiveQueryState<T>(key)
-    state.loading.value = true
+    const attachment = createConsumerAttachment(scope, key, state)
 
-    const waitingConsumer: WaitingConsumer<T> = {
-        attach: (sharedEntry) => {
-            attachToSharedState(state, sharedEntry)
-        },
+    state.stop = () => {
+        stopConsumerAttachment(attachment)
+    }
+    state.restart = () => {
+        restartConsumerAttachment(attachment)
     }
 
-    addWaitingConsumer(scope, key, waitingConsumer)
+    attachOrWaitForSharedState(attachment)
 
     onScopeDispose(() => {
-        removeWaitingConsumer(scope, key, waitingConsumer)
+        removeWaitingConsumer(scope, key, attachment.waitingConsumer)
     }, true)
 
     return state
@@ -159,14 +161,96 @@ function emitSubscriptionRegistered<T>(
     scope.waitingConsumers.delete(sharedEntry.key)
 }
 
-function attachToSharedState<T>(
+function createConsumerAttachment<T>(
+    scope: SubscriptionScope,
+    key: string,
     state: LiveQueryState<T>,
+): ConsumerAttachment<T> {
+    const attachment = {
+        key,
+        scope,
+        state,
+        waitingConsumer: {
+            attach: (sharedEntry: LiveQuerySubscriptionEntry<T>) => {
+                attachToSharedState(attachment, sharedEntry)
+            },
+        },
+    }
+
+    return attachment
+}
+
+function attachOrWaitForSharedState<T>(
+    attachment: ConsumerAttachment<T>,
+): void {
+    removeWaitingConsumer(
+        attachment.scope,
+        attachment.key,
+        attachment.waitingConsumer,
+    )
+
+    const entry = attachment.scope.subscriptionMap.get(attachment.key)
+
+    if (entry) {
+        attachToSharedState(attachment, entry as LiveQuerySubscriptionEntry<T>)
+        return
+    }
+
+    applyWaitingDefaults(attachment.state)
+    addWaitingConsumer(
+        attachment.scope,
+        attachment.key,
+        attachment.waitingConsumer,
+    )
+}
+
+function stopConsumerAttachment<T>(attachment: ConsumerAttachment<T>): void {
+    removeWaitingConsumer(
+        attachment.scope,
+        attachment.key,
+        attachment.waitingConsumer,
+    )
+    applySnapshotDefaults(attachment.state)
+}
+
+function restartConsumerAttachment<T>(attachment: ConsumerAttachment<T>): void {
+    attachOrWaitForSharedState(attachment)
+}
+
+function attachToSharedState<T>(
+    attachment: ConsumerAttachment<T>,
     sharedEntry: LiveQuerySubscriptionEntry<T>,
 ): void {
+    const { state } = attachment
+
+    // Consumers share producer refs while active, but keep local controls so
+    // they cannot stop or restart the producer-owned Dexie subscription.
     state.data = sharedEntry.data
     state.loading = sharedEntry.loading
     state.hasError = sharedEntry.hasError
     state.error = sharedEntry.error
-    state.stop = sharedEntry.stop
-    state.restart = sharedEntry.restart
+}
+
+function applyWaitingDefaults<T>(state: LiveQueryState<T>): void {
+    state.data = shallowRef([])
+    state.loading = ref(true)
+    state.hasError = ref(false)
+
+    if (state.error) {
+        state.error = ref(undefined)
+    }
+}
+
+function applySnapshotDefaults<T>(state: LiveQueryState<T>): void {
+    const currentError = state.error?.value
+
+    // Detaching replaces shared refs with local refs so later producer updates
+    // no longer change this consumer's snapshot.
+    state.data = shallowRef([...state.data.value])
+    state.loading = ref(false)
+    state.hasError = ref(state.hasError.value)
+
+    if (state.error) {
+        state.error = ref(currentError)
+    }
 }

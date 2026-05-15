@@ -166,6 +166,29 @@ input {
     background: #115e59;
 }
 
+.control-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 24px 0;
+}
+
+.control-row button {
+    height: 36px;
+    padding: 0 14px;
+    border: 1px solid #b8c4cc;
+    border-radius: 6px;
+    color: #172026;
+    background: #ffffff;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.control-row button:hover {
+    border-color: #0f766e;
+    color: #0f766e;
+}
+
 .friend-list {
     min-height: 210px;
     padding: 14px;

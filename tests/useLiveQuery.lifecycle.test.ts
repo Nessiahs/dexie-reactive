@@ -55,10 +55,12 @@ describe('useLiveQuery producer lifecycle', () => {
 
         dexieMock.subscriptions[0]?.observer.next([{ id: 'friend-1' }])
 
+        const consumer = useLiveQuerySubscription<{ id: string }>('friends')
+
         expect(producer.data.value).toEqual([{ id: 'friend-1' }])
-        expect(useLiveQuerySubscription<{ id: string }>('friends')).toBe(
-            producer,
-        )
+        expect(consumer).not.toBe(producer)
+        expect(consumer.data).toBe(producer.data)
+        expect(consumer.data.value).toEqual([{ id: 'friend-1' }])
     })
 
     it('does not create a subscription when the query function is missing', () => {

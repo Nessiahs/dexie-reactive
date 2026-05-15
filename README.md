@@ -179,8 +179,9 @@ const { data, loading, hasError } =
 `useLiveQuerySubscription` is the consumer. It attaches to shared state by key
 and never creates a Dexie subscription.
 
-The consumer receives shared reactive state by key. It does not get a cloned
-snapshot and it does not create a second Dexie subscription.
+An active consumer receives the shared reactive refs by key. It keeps local
+controls so `stop()` and `restart()` only affect that consumer attachment, not
+the producer-owned Dexie subscription.
 
 ## Public API
 
@@ -229,6 +230,7 @@ function useLiveQuerySubscription<T>(key: string): LiveQueryState<T>
 - Never receives a query function.
 - Never creates a Dexie live query subscription.
 - Returns the same reactive refs as the producer once the producer exists.
+- Uses local `stop()` and `restart()` controls for its own attachment.
 
 ### Returned State
 
@@ -339,14 +341,24 @@ const friends = useLiveQuery(() => db.friends.toArray(), {
 
 ## Lifecycle Controls
 
-`stop()` unsubscribes from Dexie, sets `loading` to `false`, and keeps current
-data.
+Producer controls from `useLiveQuery` manage the real Dexie subscription:
 
-`restart()` performs a full reset and starts a new subscription using the latest
-query function.
+- `stop()` unsubscribes from Dexie, sets `loading` to `false`, and keeps current
+  data.
+- `restart()` performs a full reset and starts a new subscription using the
+  latest query function.
 
-For shared keys, these controls affect all consumers because they point to the
-producer-owned state.
+Consumer controls from `useLiveQuerySubscription` manage only that consumer's
+local attachment:
+
+- `stop()` detaches the consumer, keeps a snapshot of current data, and sets
+  local `loading` to `false`.
+- `restart()` reattaches the consumer to the current shared state for the same
+  key, or waits again if no producer exists.
+
+Consumer controls never stop, restart, or create the Dexie live query. If you
+previously called consumer controls to manage the shared subscription, call the
+producer controls returned by `useLiveQuery` instead.
 
 ## Flow Diagrams
 
@@ -371,10 +383,12 @@ flowchart TD
 ```mermaid
 flowchart TD
     A["useLiveQuerySubscription(key)"] --> B{"Key exists in subscription map?"}
-    B -->|Yes| C["Return existing shared reactive state"]
-    B -->|No| D["Create waiting reactive state"]
-    D --> E["Register waiting consumer by key"]
-    E --> F["Return waiting state"]
+    B -->|Yes| C["Create local consumer state"]
+    C --> D["Attach local refs to shared refs"]
+    B -->|No| E["Create waiting consumer state"]
+    E --> F["Register waiting consumer by key"]
+    F --> G["Return local consumer state"]
+    D --> G
 ```
 
 ### Waiting Consumer Flow
@@ -384,7 +398,7 @@ flowchart TD
     A["Consumer subscribes before producer"] --> B["Waiting consumer is stored by key"]
     B --> C["Producer later registers same key"]
     C --> D["Registration message is emitted synchronously"]
-    D --> E["Waiting consumer attaches to producer refs"]
+    D --> E["Waiting consumer attaches local refs to producer refs"]
     E --> F["Waiting entry is removed"]
 ```
 

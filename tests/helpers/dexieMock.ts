@@ -49,6 +49,7 @@ afterEach(() => {
     dexieMock.liveQuery.mockClear()
     dexieMock.subscriptions.splice(0)
     vi.unstubAllGlobals()
+    vi.unstubAllEnvs()
 })
 
 export function getDexieMock(): typeof dexieMock {

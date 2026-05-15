@@ -39,10 +39,12 @@ describe('subscription scope coordination', () => {
         )
         const consumer = useLiveQuerySubscription<{ id: string }>('friends')
 
-        expect(consumer).toBe(producer)
+        expect(consumer).not.toBe(producer)
         expect(consumer.data).toBe(producer.data)
         expect(consumer.loading).toBe(producer.loading)
         expect(consumer.hasError).toBe(producer.hasError)
+        expect(consumer.stop).not.toBe(producer.stop)
+        expect(consumer.restart).not.toBe(producer.restart)
     })
 
     it('synchronously attaches waiting consumers when a producer registers', () => {
@@ -124,7 +126,7 @@ describe('subscription scope coordination', () => {
         expect(dexieMock.liveQuery).not.toHaveBeenCalled()
     })
 
-    it('shares producer-owned stop and restart from waiting consumers after attachment', () => {
+    it('keeps consumer controls local after waiting consumers attach', () => {
         vi.stubGlobal('window', {})
 
         const consumer = useLiveQuerySubscription<{ id: string }>('friends')
@@ -137,22 +139,140 @@ describe('subscription scope coordination', () => {
             },
         )
 
-        expect(consumer.stop).not.toBe(waitingStop)
-        expect(consumer.restart).not.toBe(waitingRestart)
-        expect(consumer.stop).toBe(producer.stop)
-        expect(consumer.restart).toBe(producer.restart)
+        expect(consumer.stop).toBe(waitingStop)
+        expect(consumer.restart).toBe(waitingRestart)
+        expect(consumer.stop).not.toBe(producer.stop)
+        expect(consumer.restart).not.toBe(producer.restart)
 
         consumer.stop()
 
         expect(
             dexieMock.subscriptions[0]?.subscription.unsubscribe,
-        ).toHaveBeenCalledOnce()
+        ).not.toHaveBeenCalled()
 
         consumer.restart()
 
-        expect(dexieMock.liveQuery).toHaveBeenCalledTimes(2)
+        expect(dexieMock.liveQuery).toHaveBeenCalledTimes(1)
+        expect(consumer.data).toBe(producer.data)
+        expect(consumer.loading.value).toBe(true)
+    })
+
+    it('stops a consumer locally without affecting the producer or other consumers', () => {
+        vi.stubGlobal('window', {})
+
+        const producer = useLiveQuery<{ id: string }>(
+            () => Promise.resolve([{ id: 'friend-1' }]),
+            {
+                key: 'friends',
+            },
+        )
+        const stoppedConsumer = useLiveQuerySubscription<{ id: string }>(
+            'friends',
+        )
+        const activeConsumer = useLiveQuerySubscription<{ id: string }>(
+            'friends',
+        )
+
+        dexieMock.subscriptions[0]?.observer.next([{ id: 'friend-1' }])
+        stoppedConsumer.stop()
+        dexieMock.subscriptions[0]?.observer.next([{ id: 'friend-2' }])
+
+        expect(
+            dexieMock.subscriptions[0]?.subscription.unsubscribe,
+        ).not.toHaveBeenCalled()
+        expect(producer.data.value).toEqual([{ id: 'friend-2' }])
+        expect(activeConsumer.data.value).toEqual([{ id: 'friend-2' }])
+        expect(stoppedConsumer.data.value).toEqual([{ id: 'friend-1' }])
+        expect(stoppedConsumer.loading.value).toBe(false)
+    })
+
+    it('keeps a stopped consumer error snapshot after later producer recovery', () => {
+        vi.stubGlobal('window', {})
+        vi.stubEnv('NODE_ENV', 'development')
+
+        const producer = useLiveQuery<{ id: string }>(
+            () => Promise.resolve([{ id: 'friend-1' }]),
+            {
+                key: 'friends',
+            },
+        )
+        const consumer = useLiveQuerySubscription<{ id: string }>('friends')
+        const failure = new Error('Query failed')
+
+        dexieMock.subscriptions[0]?.observer.error(failure)
+        consumer.stop()
+        dexieMock.subscriptions[0]?.observer.next([{ id: 'friend-1' }])
+
+        expect(producer.hasError.value).toBe(false)
+        expect(producer.data.value).toEqual([{ id: 'friend-1' }])
+        expect(consumer.hasError.value).toBe(true)
+        expect(consumer.error?.value).toBe(failure)
+        expect(consumer.data.value).toEqual([])
+        expect(consumer.loading.value).toBe(false)
+    })
+
+    it('reattaches a stopped consumer to the current shared state', () => {
+        vi.stubGlobal('window', {})
+
+        const producer = useLiveQuery<{ id: string }>(
+            () => Promise.resolve([{ id: 'friend-1' }]),
+            {
+                key: 'friends',
+            },
+        )
+        const consumer = useLiveQuerySubscription<{ id: string }>('friends')
+
+        dexieMock.subscriptions[0]?.observer.next([{ id: 'friend-1' }])
+        consumer.stop()
+        dexieMock.subscriptions[0]?.observer.next([{ id: 'friend-2' }])
+        consumer.restart()
+
+        expect(consumer.data).toBe(producer.data)
+        expect(consumer.loading).toBe(producer.loading)
+        expect(consumer.hasError).toBe(producer.hasError)
+        expect(consumer.data.value).toEqual([{ id: 'friend-2' }])
+        expect(dexieMock.liveQuery).toHaveBeenCalledTimes(1)
+    })
+
+    it('registers a stopped consumer as waiting again when restarted without a producer', () => {
+        vi.stubGlobal('window', {})
+
+        const scope = resolveSubscriptionScope()
+        const consumer = useLiveQuerySubscription<{ id: string }>('friends')
+
+        consumer.stop()
+
+        expect(scope.waitingConsumers.has('friends')).toBe(false)
+        expect(consumer.loading.value).toBe(false)
+
+        consumer.restart()
+
+        expect(scope.waitingConsumers.get('friends')?.size).toBe(1)
         expect(consumer.data.value).toEqual([])
         expect(consumer.loading.value).toBe(true)
+        expect(consumer.hasError.value).toBe(false)
+    })
+
+    it('does not attach a stopped waiting consumer when a producer registers', () => {
+        vi.stubGlobal('window', {})
+
+        const scope = resolveSubscriptionScope()
+        const consumer = useLiveQuerySubscription<{ id: string }>('friends')
+
+        consumer.stop()
+
+        const producer = useLiveQuery<{ id: string }>(
+            () => Promise.resolve([{ id: 'friend-1' }]),
+            {
+                key: 'friends',
+            },
+        )
+        dexieMock.subscriptions[0]?.observer.next([{ id: 'friend-1' }])
+
+        expect(scope.waitingConsumers.has('friends')).toBe(false)
+        expect(consumer.data).not.toBe(producer.data)
+        expect(consumer.data.value).toEqual([])
+        expect(consumer.loading.value).toBe(false)
     })
 
     it('keeps producers and consumers isolated across different keys', () => {
@@ -179,8 +299,8 @@ describe('subscription scope coordination', () => {
         dexieMock.subscriptions[0]?.observer.next([{ id: 'friend-1' }])
         dexieMock.subscriptions[1]?.observer.next([{ id: 'pet-1' }])
 
-        expect(friendsConsumer).toBe(friendsProducer)
-        expect(petsConsumer).toBe(petsProducer)
+        expect(friendsConsumer).not.toBe(friendsProducer)
+        expect(petsConsumer).not.toBe(petsProducer)
         expect(friendsConsumer.data).not.toBe(petsConsumer.data)
         expect(friendsConsumer.data.value).toEqual([{ id: 'friend-1' }])
         expect(petsConsumer.data.value).toEqual([{ id: 'pet-1' }])
