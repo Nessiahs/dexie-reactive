@@ -24,7 +24,7 @@ jobs:
 
             - name: 🟢 Setup Node.js
               if: steps.changelog_commit.outputs.is_changelog_pull_request != 'true'
-              uses: actions/setup-node@v6
+              uses: actions/setup-node@v7
               with:
                   node-version: 22
                   cache: npm
