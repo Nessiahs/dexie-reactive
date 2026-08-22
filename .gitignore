@@ -33,5 +33,6 @@ pnpm-debug.log*
 .idea/shelf
 .idea/httpRequests
 .idea/queries
+.idea/IntelliLang.xml
 .idea/dataSources
 .idea/dataSources.local.xml
