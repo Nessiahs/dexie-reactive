@@ -1,3 +1,12 @@
+## 🚀 Version 1.5.0 (2026-08-22)
+
+### 🚀 Features
+* update dependencies (167c5ee4644dba7df321b4767182b18258a71e32)
+* update dependencies ([#96](https://github.com/Nessiahs/dexie-reactive/issues/96)) (2d947cbabb6039f2c35f17d0d9ebe78cc96ec4ea)
+
+### 📚 Documentation
+* update changelog (cb88a4eda0bd593836606ac203b78724658e5fd0)
+
 ## 🚀 Version 1.4.0 (2026-05-15)
 
 ### 🚀 Features
